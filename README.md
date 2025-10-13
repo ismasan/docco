@@ -280,4 +280,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Credits
 
-Created by [Ismael Celis](https://github.com/ismasan)
+Created by [Ismael Celis](https://ismaelcelis.com)
