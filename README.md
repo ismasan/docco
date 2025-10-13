@@ -2,6 +2,8 @@
 
 Docco is a Ruby gem that transforms your gem's README.md into a beautiful, responsive static HTML documentation website. It's designed to be simple, fast, and easy to integrate into your Ruby gem's workflow.
 
+<img width="1071" height="1031" alt="CleanShot 2025-10-13 at 19 31 03" src="https://github.com/user-attachments/assets/db76935c-b0f7-4c14-adca-34366e6de4ad" />
+
 ## Features
 
 - Converts GitHub-flavored Markdown to beautiful HTML documentation
