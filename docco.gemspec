@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Builds static HTML documentation from a Ruby gem's README"
   spec.description = "Builds static HTML documentation from a Ruby gem's README"
-  spec.homepage = "https://github.com/ismasan/docco"
+  spec.homepage = "https://ismasan.github.io/docco"
   spec.required_ruby_version = ">= 3.2.0"
   spec.post_install_message = <<~MSG
 
@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   MSG
 
   spec.metadata["homepage_uri"] = spec.homepage
-  # spec.metadata["source_code_uri"] = "TODO: Put your gem's public repo URL here."
+  spec.metadata["source_code_uri"] = "https://github.com/ismasan/docco"
   # spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
 
   # Specify which files should be added to the gem when it is released.
