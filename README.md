@@ -21,7 +21,7 @@ Add Docco to your gem's Gemfile:
 
 ```ruby
 group :development do
-  gem 'docco'
+  gem 'docco', github: 'ismasan/docco'
 end
 ```
 
