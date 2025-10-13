@@ -13,14 +13,18 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/ismasan/docco"
   spec.required_ruby_version = ">= 3.2.0"
   spec.post_install_message = <<~MSG
-    Docco is now installed.
-    Add the following in your library's Rakefile:
 
-      require 'docco/tasks'
+    +----------------------------+
+      Docco is now installed.
+      Add the following in your library's Rakefile:
 
-    Now you can run `bundle exec rake docco:docs` to generate HTML docs from your README.md and .gemspec
+        require 'docco/tasks'
 
-    You can also run `bundle exec rake docco:gh` to add a Github action to generate docs to Github Pages on deply.
+      Now you can run `bundle exec rake docco:docs` to generate HTML docs from your README.md and .gemspec
+
+      You can also run `bundle exec rake docco:gh` to add a Github action to generate docs to Github Pages on deply.
+    +-----------------------------+
+
   MSG
 
   spec.metadata["homepage_uri"] = spec.homepage
