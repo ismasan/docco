@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'kramdown'
 require 'fileutils'
 require_relative "docco/version"
+require_relative "docco/parser"
 
 module Docco
   STYLES = 'styles.css'
@@ -25,13 +25,60 @@ module Docco
     puts "Docco styles copied to #{destination}"
   end
 
+  def self.parse(text)
+    parser = Parser.new(text)
+    parser.structure
+  end
+
+  Info = Data.define(:name, :summary, :description, :repo_url)
+  Project = Data.define(:info, :root)
+
+  module Theme
+    require 'erb'
+
+    def self.template(str)
+      ERB.new(str)
+    end
+
+    Layout = template(<<~HTML.strip)
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><%= project.info.name %> - <%= project.info.summary %></title>
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+      </head>
+      <body>
+        <%= project.root.inspect %>
+        <% project.root.nodes.each do |node| %>
+          <%= node.to_html %>
+          <hr />
+        <% end %>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
+        <script>hljs.highlightAll();</script>
+      </body>
+    </html>
+    HTML
+
+    Context = Data.define(:project, :page) do
+      public :binding
+    end
+
+    def self.render(project, page)
+      ctx = Context.new(project, page)
+      Layout.result(ctx.binding)
+    end
+  end
+
   class DocsBuilder
     def initialize(readme_path:, output_dir:, gemspec_path: nil)
       @readme_path = readme_path
       @output_dir = output_dir
-      @sections = []
-      @gemspec_path = gemspec_path || find_gemspec
-      load_gemspec_info
+      @info = load_gemspec_info(gemspec_path || find_gemspec)
     end
 
     def build
@@ -44,19 +91,21 @@ module Docco
       markdown = File.read(@readme_path)
 
       puts "Parsing markdown..."
-      doc = Kramdown::Document.new(markdown, input: 'GFM', auto_ids: true)
+      root = Docco.parse(markdown)
 
-      puts "Extracting structure..."
-      extract_structure(doc.root)
+      project = Project.new(info: @info, root:)
 
-      puts "Generating HTML..."
-      html = generate_html(doc)
+      html = Theme.render(project, nil)
 
-      puts "Writing to #{@output_dir}/index.html..."
-      FileUtils.mkdir_p(@output_dir)
       File.write(File.join(@output_dir, 'index.html'), html)
-
-      puts "Done! Documentation built successfully."
+      # puts "Generating HTML..."
+      # html = generate_html(doc)
+      #
+      # puts "Writing to #{@output_dir}/index.html..."
+      # FileUtils.mkdir_p(@output_dir)
+      # File.write(File.join(@output_dir, 'index.html'), html)
+      #
+      # puts "Done! Documentation built successfully."
     end
 
     private
@@ -74,20 +123,22 @@ module Docco
       end
     end
 
-    def load_gemspec_info
-      if @gemspec_path && File.exist?(@gemspec_path)
-        spec = Gem::Specification.load(@gemspec_path)
-        @gem_name = spec.name
-        @gem_summary = spec.summary
-        @gem_description = spec.description
-        # Prefer source_code_uri from metadata, fall back to homepage
-        @github_url = spec.metadata['source_code_uri'] || spec.homepage
+    def load_gemspec_info(gemspec_path)
+      if gemspec_path && File.exist?(gemspec_path)
+        spec = Gem::Specification.load(gemspec_path)
+        Info.new(
+          name: spec.name,
+          summary: spec.summary,
+          description: spec.description,
+          repo_url: spec.metadata['source_code_uri'] || spec.homepage
+        )
       else
-        # Fallback values if no gemspec found
-        @gem_name = 'Documentation'
-        @gem_summary = 'Project Documentation'
-        @gem_description = 'Project Documentation'
-        @github_url = ''
+        Info.new(
+          name: 'Documentation',
+          summary: 'Project docs',
+          description: 'Project docs',
+          repo_url: nil
+        )
       end
     end
 
