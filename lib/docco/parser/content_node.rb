@@ -9,6 +9,7 @@ module Docco
       end
 
       def inspect = %(<#{self.class}:#{@node.type} [#{@node.children}]>)
+      def section? = false
 
       def to_html
         @to_html ||= @converter.convert(@node, 0)

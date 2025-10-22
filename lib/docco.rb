@@ -3,6 +3,9 @@
 require 'fileutils'
 require_relative "docco/version"
 require_relative "docco/parser"
+require_relative "docco/builder"
+require_relative "docco/writer"
+require_relative "docco/themes/default"
 
 module Docco
   STYLES = 'styles.css'
@@ -17,62 +20,17 @@ module Docco
     puts "Github action copied to #{destination}"
   end
 
-  CopyStyles = proc do |output_dir|
-    FileUtils.mkdir_p(output_dir)
-    source = File.join(__dir__, 'docco', STYLES)
-    destination = File.join(output_dir, STYLES)
-    FileUtils.cp(source, destination)
-    puts "Docco styles copied to #{destination}"
-  end
-
   def self.parse(text)
     parser = Parser.new(text)
     parser.structure
   end
 
-  Info = Data.define(:name, :summary, :description, :repo_url)
-  Project = Data.define(:info, :root)
-
-  module Theme
-    require 'erb'
-
-    def self.template(str)
-      ERB.new(str)
-    end
-
-    Layout = template(<<~HTML.strip)
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><%= project.info.name %> - <%= project.info.summary %></title>
-        <link rel="stylesheet" href="styles.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-      </head>
-      <body>
-        <%= project.root.inspect %>
-        <% project.root.nodes.each do |node| %>
-          <%= node.to_html %>
-          <hr />
-        <% end %>
-
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
-        <script>hljs.highlightAll();</script>
-      </body>
-    </html>
-    HTML
-
-    Context = Data.define(:project, :page) do
-      public :binding
-    end
-
-    def self.render(project, page)
-      ctx = Context.new(project, page)
-      Layout.result(ctx.binding)
-    end
+  def self.write(pages, output_dir:, overwrite: false)
+    writer = Writer.new(pages, output_dir:, overwrite:)
+    writer.write
   end
+
+  Info = Data.define(:name, :summary, :description, :repo_url)
 
   class DocsBuilder
     def initialize(readme_path:, output_dir:, gemspec_path: nil)
@@ -81,31 +39,20 @@ module Docco
       @info = load_gemspec_info(gemspec_path || find_gemspec)
     end
 
-    def build
-      css = File.join(@output_dir, STYLES)
-      if !File.exist?(css)
-        CopyStyles.(@output_dir)
-      end
-
+    def build(overwrite: false)
       puts "Reading #{@readme_path}..."
       markdown = File.read(@readme_path)
 
       puts "Parsing markdown..."
       root = Docco.parse(markdown)
 
-      project = Project.new(info: @info, root:)
+      builder = Docco::Builder.new(nodes: root.nodes, info: @info)
 
-      html = Theme.render(project, nil)
-
-      File.write(File.join(@output_dir, 'index.html'), html)
-      # puts "Generating HTML..."
-      # html = generate_html(doc)
-      #
-      # puts "Writing to #{@output_dir}/index.html..."
-      # FileUtils.mkdir_p(@output_dir)
-      # File.write(File.join(@output_dir, 'index.html'), html)
-      #
-      # puts "Done! Documentation built successfully."
+      builder.visit(Docco::Themes::Default)
+      report = Docco.write(builder.pages, output_dir: @output_dir, overwrite:)
+      report.each do |path, written|
+        puts "Wrote file #{path}" if written
+      end
     end
 
     private

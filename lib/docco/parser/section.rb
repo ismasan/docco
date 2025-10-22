@@ -16,6 +16,7 @@ module Docco
       end
 
       def inspect = %(<#{self.class}:H#{level}##{id} [#{nodes.size} nodes]>)
+      def section? = true
 
       def level = @options[:level]
 

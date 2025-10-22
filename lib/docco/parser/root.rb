@@ -12,6 +12,7 @@ module Docco
       end
 
       def inspect = %(<#{self.class} [#{@nodes.size} nodes]>)
+      def section? = false
 
       def <<(section)
         @nodes << section
