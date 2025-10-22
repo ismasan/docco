@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
 
       Now you can run `bundle exec rake docco:docs` to generate HTML docs from your README.md and .gemspec
 
-      You can also run `bundle exec rake docco:gh` to add a Github action to generate docs to Github Pages on deply.
+      You can also run `bundle exec rake docco:gh` to add a Github action to generate docs to Github Pages on deploy.
     +-----------------------------+
 
   MSG
