@@ -3,12 +3,6 @@
 require 'docco'
 
 namespace :docco do
-  desc 'Copy default styles.css to host library docs'
-  task :css, [:output_dir] do |t, args|
-    output_dir = args[:output_dir] || 'docs'
-    Docco::CopyStyles.(output_dir)
-  end
-
   desc 'Generate a Github Action into .github/workflows'
   task :gh do
     Docco::CopyGHAction.()
