@@ -13,7 +13,7 @@ module Docco
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>#{@gem_name} - #{@gem_summary}</title>
+          <title><%= page.root.info.name %> - <%= page.root.info.description %></title>
           <link rel="stylesheet" href="<%= page.build('styles.css', Docco::Themes::Default::Styles) %>">
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
       </head>
