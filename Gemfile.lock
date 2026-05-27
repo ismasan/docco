@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    docco (0.1.1)
+    docco (0.1.2)
       kramdown
       kramdown-parser-gfm
 
