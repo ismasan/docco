@@ -60,6 +60,66 @@ RSpec.describe Docco do
       expect(tree.nodes[2].nodes[3].nodes[0].title).to eq(%(Subsection 2.A))
       expect(tree.nodes[2].nodes[3].nodes[0].nodes[0].to_html).to eq(%(<p>Text for subsection 2.A</p>\n))
     end
+
+    it 'renders block-level HTML elements (multi-line <video>)' do
+      markdown = <<~MARKDOWN
+        # Demo
+
+        <video controls width="500">
+          <source src="demo.mp4" type="video/mp4">
+        </video>
+
+        ## Section
+        Body.
+      MARKDOWN
+
+      html = Docco.parse(markdown).to_html
+      expect(html).to include('<video controls="" width="500">')
+      expect(html).to include('<source src="demo.mp4" type="video/mp4" />')
+      expect(html).to include('</video>')
+    end
+
+    it 'renders other block-level HTML elements (<details>, block <!-- comment -->)' do
+      markdown = <<~MARKDOWN
+        # Demo
+
+        <details>
+          <summary>Click me</summary>
+          Hidden content.
+        </details>
+
+        <!-- a standalone block comment -->
+
+        Done.
+      MARKDOWN
+
+      html = Docco.parse(markdown).to_html
+      expect(html).to include('<details>')
+      expect(html).to include('<summary>Click me</summary>')
+      expect(html).to include('<!-- a standalone block comment -->')
+    end
+
+    it 'de-duplicates auto-ids across sections (shared @used_ids in a single walk)' do
+      markdown = <<~MARKDOWN
+        # Top
+
+        ## Overview
+        First overview.
+
+        ## Details
+        ### Overview
+        Second overview.
+      MARKDOWN
+
+      tree = Docco.parse(markdown)
+      top = tree.nodes.find(&:section?)
+      first_overview = top.nodes.find { |n| n.section? && n.title == 'Overview' }
+      details = top.nodes.find { |n| n.section? && n.title == 'Details' }
+      second_overview = details.nodes.find { |n| n.section? && n.title == 'Overview' }
+
+      expect(first_overview.id).to eq('overview')
+      expect(second_overview.id).to eq('overview-1')
+    end
   end
 
   specify '.build' do

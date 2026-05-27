@@ -3,17 +3,14 @@
 module Docco
   class Parser
     class ContentNode
-      def initialize(converter, node)
-        @converter = converter
+      def initialize(node, html)
         @node = node
+        @html = html
       end
 
       def inspect = %(<#{self.class}:#{@node.type} [#{@node.children}]>)
       def section? = false
-
-      def to_html
-        @to_html ||= @converter.convert(@node, 0)
-      end
+      def to_html = @html
     end
   end
 end

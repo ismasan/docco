@@ -7,9 +7,9 @@ module Docco
 
       attr_reader :id, :options, :nodes
 
-      def initialize(converter:, node:)
-        @converter = converter
+      def initialize(node:, html:)
         @node = node
+        @title_html = html
         @id = node.attr['id']
         @options = node.options
         @nodes = []
@@ -24,20 +24,18 @@ module Docco
         @nodes << section
       end
 
-      def add_content(node)
-        @nodes << ContentNode.new(@converter, node)
+      def add_content(node, html)
+        @nodes << ContentNode.new(node, html)
       end
 
-      def title_html
-        @to_html ||= @converter.convert(@node, 0)
-      end
+      def title_html = @title_html
 
       def title
-        @title ||= title_html.match(HEADING_EXP)[2]
+        @title ||= @title_html.match(HEADING_EXP)[2]
       end
 
       def to_html
-        @nodes.reduce(title_html) do |str, node|
+        @nodes.reduce(+title_html) do |str, node|
           str << "\n" << node.to_html
         end
       end

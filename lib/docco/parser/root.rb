@@ -5,8 +5,7 @@ module Docco
     class Root
       attr_reader :nodes, :level
 
-      def initialize(converter)
-        @converter = converter
+      def initialize
         @nodes = []
         @level = 0
       end
@@ -18,8 +17,8 @@ module Docco
         @nodes << section
       end
 
-      def add_content(node)
-        @nodes << ContentNode.new(@converter, node)
+      def add_content(node, html)
+        @nodes << ContentNode.new(node, html)
       end
 
       def to_html
