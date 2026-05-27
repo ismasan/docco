@@ -423,6 +423,13 @@ pre code::-webkit-scrollbar-thumb {
     border-radius: 4px;
 }
 
+pre.mermaid {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    text-align: center;
+}
+
 /* Images */
 .image-container {
     margin: 2rem 0;
