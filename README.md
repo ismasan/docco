@@ -79,7 +79,7 @@ builder.build
 
 ### Available Rake Tasks
 
-Docco provides three rake tasks:
+Docco provides two rake tasks:
 
 #### Generate Documentation
 
@@ -90,20 +90,6 @@ bundle exec rake docco:docs
 # With custom paths
 bundle exec rake docco:docs[path/to/README.md,output/dir,my_gem.gemspec]
 ```
-
-#### Copy Styles
-
-If you want to customize the styles, first copy the default stylesheet:
-
-```bash
-# Copies to docs/styles.css (default)
-bundle exec rake docco:css
-
-# Copy to custom directory
-bundle exec rake docco:css[custom/path]
-```
-
-Then you can edit `docs/styles.css` to customize the appearance.
 
 #### Generate GitHub Action
 
@@ -206,22 +192,22 @@ Contributing guidelines...
 
 ### Custom Styles
 
-Copy the default styles and customize them:
+Building your docs writes the default stylesheet to `docs/styles.css`. Edit that file to match your branding — Docco never overwrites a file that already exists, so your changes survive subsequent builds. To start over from the default, delete `docs/styles.css` and build again.
 
-```bash
-bundle exec rake docco:css
-```
-
-Then edit `docs/styles.css` to match your branding. The CSS uses CSS custom properties (variables) for easy theming:
+The stylesheet uses CSS custom properties (variables) for easy theming:
 
 ```css
 :root {
-  --primary-color: #007bff;
-  --bg-color: #ffffff;
-  --text-color: #333333;
+  --primary-color: #2563eb;
+  --bg-color: #f8fafc;
+  --text-color: #1e293b;
+  --code-block-bg: #282c34;
+  --code-block-text: #abb2bf;
   /* ... and many more */
 }
 ```
+
+`--code-block-text` is the fallback colour for code blocks. Syntax highlighting is applied by highlight.js at runtime, but blocks it can't highlight — an unrecognised language, or a reader with JavaScript disabled — fall back to this colour, so keep it legible against `--code-block-bg`.
 
 ### Gemspec Metadata
 
