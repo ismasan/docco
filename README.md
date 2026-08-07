@@ -14,6 +14,7 @@ Docco is a Ruby gem that transforms your gem's README.md into a static HTML docu
 - GitHub link integration from your gemspec
 - GitHub Actions integration for automatic deployment to GitHub Pages
 - Zero configuration required - works out of the box
+- An ERB-based theming system that can also render multi-page websites, with a page per README section
 
 ## Installation
 
@@ -236,6 +237,213 @@ Gem::Specification.new do |spec|
   # For the GitHub link, set source_code_uri
   spec.metadata["source_code_uri"] = "https://github.com/username/my_gem"
 end
+```
+
+## Themes
+
+The default theme renders your entire README as a single page, but that's just one theme. Docco's templating system can also produce **multi-page websites**, where any section of your README becomes its own page with its own URL.
+
+### How Theming Works
+
+Three pieces cooperate:
+
+- **`Docco.parse`** turns Markdown into a tree of *sections* (headings, nested by level) and *content nodes* (everything else).
+- **`Docco::Builder`** walks that tree with a theme and collects the result into a `Hash<path, content>` — the whole website in memory.
+- **`Docco::Writer`** (via `Docco.write`) writes that hash to disk. Paths without a file extension get `index.html` appended, so `/usage/basics` becomes `docs/usage/basics/index.html`.
+
+A theme is a class that inherits from `Docco::Theme` and responds to `.call(node)`. Rendering starts at the root node, and templates create additional pages as they go.
+
+### Defining Templates
+
+`Docco::Theme.define` compiles an ERB string into a template. It also accepts anything that responds to `#read`, such as a `Pathname`, which is handy for keeping templates (and CSS) in separate files:
+
+```ruby
+require 'docco/theme'
+
+class MyTheme < Docco::Theme
+  # From a string
+  Layout = define <<~HTML
+    <html>
+      <head><title><%= slots[:doc_title] || 'Home' %></title></head>
+      <body><%= slots[:main] %></body>
+    </html>
+  HTML
+
+  # From a file on disk
+  Styles = define(Pathname.new(File.join(__dir__, 'styles.css')))
+end
+```
+
+Calling `#define` on an existing template produces a **new** template that fills that layout's named **slots**. Pass a string to fill just the `:main` slot, or a block to fill several:
+
+```ruby
+# Fills the :main slot
+HomeTemplate = Layout.define <<~HTML
+  <h1><%= page.root.info.name %></h1>
+  <p><%= page.root.info.summary %></p>
+HTML
+
+# Fills multiple slots
+PageTemplate = Layout.define do |tpl|
+  tpl.slot :doc_title, '<%= page.title %>'
+  tpl.slot :main, <<~HTML
+    <h1><%= page.title %></h1>
+    <% page.nodes.each do |node| %>
+      <%= node.to_html %>
+    <% end %>
+  HTML
+end
+```
+
+Slots are rendered first, then the layout, so `slots[:main]` in the layout holds already-rendered HTML.
+
+### Creating Pages With `build`
+
+`build` is what makes multi-page themes possible. Inside a template, calling `build` on a node:
+
+1. renders the given template for that node,
+2. registers the result in the site under that node's path,
+3. and **returns the path** — so it goes straight into an `href`.
+
+```erb
+<a href="<%= section.build(MyTheme::PageTemplate) %>"><%= section.title %></a>
+```
+
+The path is derived from the node's position in the README tree (`/my-gem/usage/basic-setup`). Pass an explicit path as the first argument when you want to control it — this is also how static assets are emitted:
+
+```erb
+<link rel="stylesheet" href="<%= page.build('styles.css', MyTheme::Styles) %>">
+```
+
+Pages are memoized by path, so templates can link to each other freely. A sidebar that links to every page, rendered on every page, terminates instead of recursing forever.
+
+Note that stylesheets are themselves ERB templates, so they can interpolate values too.
+
+### Template API
+
+Each template is evaluated with two locals: `page` (the node being rendered, also available as `node`) and `slots`.
+
+Section nodes respond to:
+
+| Method | Description |
+| --- | --- |
+| `title` | The heading's contents as inline HTML (e.g. `This is the <code>title</code>`) |
+| `title_html` | The full rendered heading element (`<h2 id="usage">Usage</h2>`) |
+| `id` | Kramdown's auto-generated anchor id, de-duplicated across the document |
+| `level` | Heading level (1-6) |
+| `nodes` | Child nodes, both sections and content |
+| `sections` | Child nodes that are sections |
+| `section?` | `true` for sections, `false` for content nodes |
+| `to_html` | The section and all its descendants rendered as HTML |
+| `to_path` | This node's path within the site |
+| `build(template)` / `build(path, template)` | Render a sub-page and return its path |
+| `root` | The `Builder`, i.e. the site root |
+| `info` | Gem metadata |
+
+Content nodes (paragraphs, code blocks, lists, etc.) are minimal: `to_html` and `section?`.
+
+The root node passed to `.call` is the `Builder` itself. It has `nodes`, `sections`, `to_html`, `build`, `info` and `root` (which returns itself), but no `title` or `id` — pull page titles from `page.root.info` at that level.
+
+`info` is a `Docco::Info` with `name`, `summary`, `description` and `repo_url`, read from your gemspec.
+
+### A Multi-Page Theme
+
+This theme puts every `##` and `###` section on its own page, with a shared navigation menu:
+
+```ruby
+require 'docco/theme'
+
+class MyTheme < Docco::Theme
+  Styles = define(Pathname.new(File.join(__dir__, 'styles.css')))
+
+  Layout = define <<~HTML
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <link rel="stylesheet" href="<%= page.build('styles.css', MyTheme::Styles) %>">
+        <title><%= slots[:doc_title] || 'Home' %> / <%= page.root.info.name %></title>
+      </head>
+      <body>
+        <nav>
+          <a href="/">Home</a>
+          <% page.root.sections.each do |top| %>
+            <ul>
+              <% top.sections.each do |section| %>
+                <li>
+                  <a href="<%= section.build(MyTheme::PageTemplate) %>"><%= section.title %></a>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </nav>
+        <main><%= slots[:main] %></main>
+      </body>
+    </html>
+  HTML
+
+  PageTemplate = Layout.define do |tpl|
+    tpl.slot :doc_title, '<%= page.title %>'
+    tpl.slot :main, <<~HTML
+      <h1><%= page.title %></h1>
+      <% page.nodes.each do |node| %>
+        <% if node.section? %>
+          <h2><a href="<%= node.build(MyTheme::PageTemplate) %>"><%= node.title %></a></h2>
+        <% else %>
+          <%= node.to_html %>
+        <% end %>
+      <% end %>
+    HTML
+  end
+
+  HomeTemplate = Layout.define <<~HTML
+    <h1><%= page.root.info.name %></h1>
+    <p><%= page.root.info.summary %></p>
+  HTML
+
+  # Entry point. Rendering starts here, with the site root.
+  def self.call(node) = HomeTemplate.call(node)
+end
+```
+
+`PageTemplate` links to its own subsections using itself, so the site nests as deeply as your headings do.
+
+### Rendering a Site With a Custom Theme
+
+`rake docco:docs` and `Docco::DocsBuilder` always use `Docco::Themes::Default`. To use your own theme, drive `Builder` and `Writer` directly:
+
+```ruby
+require 'docco'
+require_relative 'my_theme'
+
+root = Docco.parse(File.read('README.md'))
+
+info = Docco::Info.new(
+  name: 'my_gem',
+  summary: 'A short description',
+  description: 'A longer description',
+  repo_url: 'https://github.com/username/my_gem'
+)
+
+builder = Docco::Builder.new(nodes: root.nodes, info:)
+builder.visit(MyTheme)
+
+# builder.pages is now a Hash<path, content> holding the entire site:
+#   { '' => '<html>...', 'styles.css' => 'body { ... }',
+#     '/my-gem/usage' => '<html>...', ... }
+
+Docco.write(builder.pages, output_dir: 'docs', overwrite: true)
+```
+
+`overwrite` defaults to `false`, which leaves existing files untouched — useful when you hand-edit a generated stylesheet and don't want it clobbered. Pass `overwrite: true` to regenerate everything.
+
+Because `builder.pages` is a plain hash, writing to disk is optional. You can serve it straight from memory from a Rack app, or post-process it before writing.
+
+### Extending the Default Theme
+
+`Docco::Themes::Default` is built from the same primitives, and its templates are public constants (`Layout`, `Menu`, `Section`, `HomePageTemplate`, `Styles`). Reading [`lib/docco/themes/default.rb`](https://github.com/ismasan/docco/blob/main/lib/docco/themes/default.rb) is the quickest way to see a complete theme, and you can reuse individual templates from your own:
+
+```erb
+<%= Docco::Themes::Default::Menu.(page) %>
 ```
 
 ## Example Output
