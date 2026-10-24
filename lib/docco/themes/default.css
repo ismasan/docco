@@ -468,11 +468,18 @@ pre code::-webkit-scrollbar-thumb {
     border-radius: 4px;
 }
 
-pre.mermaid {
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
+/* Mermaid diagrams, rendered by Pele (https://pele.run) */
+.mermaid {
+    margin: 1.5rem 0;
     text-align: center;
+    --pele-bg: var(--content-bg);
+    --pele-fg: var(--text-color);
+    --pele-muted: var(--text-light);
+    --pele-line: var(--secondary-color);
+    --pele-surface: var(--code-bg);
+    --pele-surface-alt: var(--border-color);
+    --pele-border: var(--code-border);
+    --pele-accent: var(--primary-color);
 }
 
 /* Images */

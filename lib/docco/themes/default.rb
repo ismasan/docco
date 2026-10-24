@@ -53,17 +53,14 @@ module Docco
           <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
           <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/erb.min.js"></script>
-          <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/pele@1/dist/pele.global.js"></script>
           <script>
               document.querySelectorAll('pre > code.language-mermaid').forEach((code) => {
-                  const pre = code.parentElement;
-                  const container = document.createElement('pre');
+                  const container = document.createElement('div');
                   container.className = 'mermaid';
-                  container.textContent = code.textContent;
-                  pre.replaceWith(container);
+                  code.parentElement.replaceWith(container);
+                  pele.mount(container, code.textContent);
               });
-              mermaid.initialize({ startOnLoad: false, theme: 'default' });
-              mermaid.run();
               hljs.highlightAll();
           </script>
           <script>
